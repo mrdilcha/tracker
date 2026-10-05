@@ -38,7 +38,7 @@ textarea,input{width:100%;background:#0e1216;color:var(--text);border:1px solid 
 <div class="app">
   <div class="top">
     <div><div class="brand">DISCIPLINE TRACKER</div><div class="muted small" id="hello"></div></div>
-    <button class="btn" onclick="openModal()">+ New</button>
+    <div class="row"><button class="btn secondary" onclick="downloadJSON()">↓ Export JSON</button><button class="btn" onclick="openModal()">+ New</button></div>
   </div>
   <div id="screen"></div>
 </div>
@@ -93,6 +93,52 @@ function markAllToday(){
  Object.keys(c.entries[idx].tasks).forEach(k=>c.entries[idx].tasks[k]=true);c.entries[idx].done=true;save();render();
 }
 
+
+function downloadJSON(){
+ const exportedAt=new Date().toISOString();
+ const systemPrompt=`You are a brutally honest personal discipline analyst and performance coach. Analyze the attached JSON tracker data objectively. Do not flatter the user and do not invent facts.
+
+Your job:
+1. Identify the user's strongest and weakest habits from the actual data.
+2. Find patterns in missed days, incomplete habits, notes, streaks, and repeated problems.
+3. Distinguish facts shown by the data from reasonable interpretations.
+4. Identify the 3 biggest behaviors currently holding the user back.
+5. Look for excuses, recurring triggers, avoidance patterns, inconsistency, or self-sabotaging loops if the notes support them.
+6. Give practical corrective actions that are specific enough to execute tomorrow.
+7. Create a simple 7-day correction plan based on the weakest areas.
+8. Tell the user what NOT to focus on yet if they are trying to change too many things.
+9. Be direct. If the user is doing poorly, say so clearly. If they are improving, explain exactly what the data proves.
+10. Never diagnose mental or medical conditions. If a note suggests a health or safety issue, recommend appropriate professional help rather than diagnosing.
+
+Use this response structure:
+- EXECUTIVE VERDICT
+- WHAT THE DATA SAYS
+- WHERE I AM GOING WRONG
+- MY 3 BIGGEST PROBLEMS
+- PATTERNS/TRIGGERS
+- WHAT I SHOULD CHANGE
+- 7-DAY CORRECTION PLAN
+- ONE RULE FOR TOMORROW
+- FINAL SCORECARD
+
+Important: Base your analysis primarily on the exported tracker data. Do not pretend to know anything that is not in the file.`;
+
+ const payload={
+   file_type:"discipline_tracker_export",
+   version:"2.0",
+   exported_at:exportedAt,
+   system_prompt:systemPrompt,
+   user_profile:{name:data.name},
+   challenges:data.challenges,
+   analysis_instructions:"Give the JSON file to an AI model together with the system_prompt above. Ask it to analyze my discipline performance using the required response structure."
+ };
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+ a.href=url;
+ a.download=`discipline-tracker-${new Date().toISOString().slice(0,10)}.json`;
+ document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
 function motivation(){
  const quotes=[
   "Discipline is choosing what you want most over what you want right now.",
@@ -126,7 +172,8 @@ function render(){
  <div class="stat"><b>${x.streak}</b><span>Current streak</span></div>
  </div><div class="progress"><i style="width:${x.pct}%"></i></div>
  <div class="scoreline"><span>Overall scoreboard</span><strong>${x.completed} days • ${x.taskDone}/${x.taskTotal} habits</strong></div></div>
- <div class="card"><div class="row">${challengeBtns}</div><div class="actions"><button class="btn" onclick="markAllToday()">✓ Complete today</button><button class="btn secondary" onclick="openModal()">+ New challenge</button></div></div>
+ <div class="card"><div class="row">${challengeBtns}</div><div class="actions"><button class="btn" onclick="markAllToday()">✓ Complete today</button><button class="btn secondary" onclick="openModal()">+ New challenge</button></div>
+ <div class="muted small" style="margin-top:12px">Export JSON saves your tracker data plus an AI analysis system prompt, so another AI can review your progress and tell you where you're going wrong.</div></div>
  <div class="card motivation">
  <div class="motivation-label">TODAY'S MINDSET</div>
  <div id="quote">${motivation()}</div>
